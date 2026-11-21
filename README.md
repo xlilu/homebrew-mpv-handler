@@ -1,6 +1,6 @@
 # mpv-handler for Homebrew
 
-原项目：[akiirui/mpv-handler](https://github.com/akiirui/mpv-handler)
+本 Tap 为 [akiirui/mpv-handler](https://github.com/akiirui/mpv-handler) 提供 macOS 的 Homebrew 安装方式。
 
 用 macOS 浏览器里的 `mpv-handler://` 链接启动 mpv。Homebrew 管理命令行程序、mpv 和 yt-dlp，另一个命令生成接收浏览器链接的应用外壳。
 
