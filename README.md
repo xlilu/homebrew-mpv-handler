@@ -4,12 +4,18 @@
 
 ## 安装
 
+本分支提供开发版 Formula。首次安装开发版时，先将本地 Tap 切换到 `dev` 分支。
+
 ```sh
-brew install xlilu/mpv-handler/mpv-handler
+brew tap xlilu/mpv-handler
+tap_dir="$(brew --repository xlilu/mpv-handler)"
+git -C "$tap_dir" fetch origin
+git -C "$tap_dir" switch dev
+HOMEBREW_NO_AUTO_UPDATE=1 brew install xlilu/mpv-handler/mpv-handler
 create-mpv-handler-app
 ```
 
-第二条命令创建 `~/Applications/mpv-handler.app`，并向 macOS 注册两种协议。`mpv-handler://` 直接启动播放，`mpv-handler-debug://` 会打开“终端”窗口，显示输出和错误信息。浏览器首次询问是否打开外部应用时，选择打开。
+`create-mpv-handler-app` 创建 `~/Applications/mpv-handler.app`，并向 macOS 注册两种协议。`mpv-handler://` 直接启动播放，`mpv-handler-debug://` 会打开“终端”窗口，显示输出和错误信息。调试链接通过环境变量传给终端，无需临时请求文件。浏览器首次询问是否打开外部应用时，选择打开。
 
 如果目标目录已有同名应用，脚本会提示并退出。要先检查新外壳，可指定另一个目录并跳过注册：
 
@@ -29,12 +35,14 @@ create-mpv-handler-app --no-register "$PWD/preview"
 
 如果此前的 Homebrew 版本在 `~/Library/Application Support/mpv-handler/` 中保存了配置，可将其中的 `config.toml` 和 `cookies/` 下的文件按原目录结构复制到当前配置目录，跳过已有的同名文件。
 
+切换到 `dev` 分支后，可以用以下命令升级开发版。
+
 ```sh
-brew update
-brew upgrade xlilu/mpv-handler/mpv-handler
+git -C "$(brew --repository xlilu/mpv-handler)" pull --ff-only origin dev
+HOMEBREW_NO_AUTO_UPDATE=1 brew upgrade xlilu/mpv-handler/mpv-handler
 ```
 
-外壳通过 Homebrew 的 `opt/mpv-handler` 路径调用当前核心。**如果外壳由 Formula `0.4.2_1` 或更早版本生成**，升级后请将旧应用移到废纸篓，再运行 `create-mpv-handler-app` 生成支持调试窗口的新外壳。如果曾指定安装目录，请把同一目录作为参数传给生成命令。
+外壳通过 Homebrew 的 `opt/mpv-handler` 路径调用当前核心。**如果外壳由 Formula `0.4.2_2` 或更早版本生成**，升级后请先移走旧应用，再运行 `create-mpv-handler-app` 生成使用新调试入口的外壳。如果曾指定安装目录，请把同一目录作为参数传给生成命令。
 
 ## 卸载
 
