@@ -19,7 +19,9 @@ create-mpv-handler-app --no-register "$PWD/preview"
 
 ## 配置与升级
 
-默认设置即可使用。自定义播放器、yt-dlp 路径或代理时，请编辑 `~/Library/Application Support/mpv-handler/config.toml`。[协议格式与浏览器用户脚本](https://github.com/xlilu/mpv-handler/blob/dev/README.zh-Hans.md)
+默认设置即可使用。自定义播放器、yt-dlp 路径或代理时，可编辑 `~/.config/mpv-handler/config.toml`。需要 cookie 文件时，将其放在 `~/.config/mpv-handler/cookies/`。如果应用环境中的 `XDG_CONFIG_HOME` 是绝对路径，两者都从 `$XDG_CONFIG_HOME/mpv-handler/` 读取。变量未设置或值为相对路径时，使用默认位置。[协议格式与浏览器用户脚本](https://github.com/xlilu/mpv-handler/blob/dev/README.zh-Hans.md)
+
+如果此前的 Homebrew 版本在 `~/Library/Application Support/mpv-handler/` 中保存了配置，可将其中的 `config.toml` 和 `cookies/` 下的文件按原目录结构复制到当前配置目录，跳过已有的同名文件。
 
 ```sh
 brew update
