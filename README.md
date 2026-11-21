@@ -41,3 +41,7 @@ brew uninstall xlilu/mpv-handler/mpv-handler
 如果也想移除这个 Tap，运行 `brew untap xlilu/mpv-handler`。
 
 本项目使用了先安装核心、再在本机生成应用外壳的思路。[9beach/mpv-app-bundle](https://github.com/9beach/mpv-app-bundle)
+
+## 许可证
+
+mpv-handler 核心由 Akatsuki Rui 开发，以 MIT 许可证发布。本 Tap 的 Homebrew 打包代码由 xlilu 提供，同样采用 MIT 许可证。[上游 LICENSE](https://github.com/akiirui/mpv-handler/blob/main/LICENSE) · [Tap LICENSE](LICENSE)
