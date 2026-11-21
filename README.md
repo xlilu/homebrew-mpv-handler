@@ -17,9 +17,15 @@ create-mpv-handler-app
 create-mpv-handler-app --no-register "$PWD/preview"
 ```
 
+## 配合浏览器用户脚本使用
+
+在浏览器中启用 Tampermonkey 或 Violentmonkey，再打开 [Greasy Fork 上的「使用 MPV 播放」](https://greasyfork.org/zh-CN/scripts/416271-play-with-mpv)，点击「安装此脚本」。
+
+打开 YouTube 或哔哩哔哩的视频页，点击页面左下角的 mpv 图标即可播放。脚本的 `Run With Console` 默认是 `yes`，会打开 Terminal 显示播放输出和错误。要直接播放，在图标旁的齿轮设置中将它改为 `no` 并保存。
+
 ## 配置与升级
 
-默认设置即可使用。自定义播放器、yt-dlp 路径或代理时，可编辑 `~/.config/mpv-handler/config.toml`。需要 cookie 文件时，将其放在 `~/.config/mpv-handler/cookies/`。如果应用环境中的 `XDG_CONFIG_HOME` 是绝对路径，两者都从 `$XDG_CONFIG_HOME/mpv-handler/` 读取。变量未设置或值为相对路径时，使用默认位置。[协议格式与浏览器用户脚本](https://github.com/xlilu/mpv-handler/blob/dev/README.zh-Hans.md)
+默认设置即可使用。自定义播放器、yt-dlp 路径或代理时，可编辑 `~/.config/mpv-handler/config.toml`。需要 cookie 文件时，将其放在 `~/.config/mpv-handler/cookies/`。如果应用环境中的 `XDG_CONFIG_HOME` 是绝对路径，两者都从 `$XDG_CONFIG_HOME/mpv-handler/` 读取。变量未设置或值为相对路径时，使用默认位置。[协议格式](https://github.com/xlilu/mpv-handler/blob/dev/README.zh-Hans.md)
 
 如果此前的 Homebrew 版本在 `~/Library/Application Support/mpv-handler/` 中保存了配置，可将其中的 `config.toml` 和 `cookies/` 下的文件按原目录结构复制到当前配置目录，跳过已有的同名文件。
 
