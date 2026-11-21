@@ -1,0 +1,46 @@
+name: Test Homebrew installation
+
+on: [push, pull_request, workflow_dispatch]
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install and test the Formula
+        run: |
+          brew tap xlilu/mpv-handler "$GITHUB_WORKSPACE"
+          brew install xlilu/mpv-handler/mpv-handler
+          brew test xlilu/mpv-handler/mpv-handler
+
+      - name: Open a protocol URL through the app
+        run: |
+          apps="$RUNNER_TEMP/Applications"
+          create-mpv-handler-app "$apps"
+
+          config="$HOME/Library/Application Support/mpv-handler"
+          player="$RUNNER_TEMP/mock-mpv"
+          mkdir -p "$config"
+          printf 'mpv = "%s"\n' "$player" > "$config/config.toml"
+          cat > "$player" <<'SH'
+          #!/bin/sh
+          set -eu
+          out="$HOME/mpv-handler-arguments"
+          printf '%s\n' "$@" > "$out.tmp"
+          mv "$out.tmp" "$out"
+          SH
+          chmod +x "$player"
+
+          /usr/bin/open -a "$apps/mpv-handler.app" 'mpv-handler://play/aHR0cHM6Ly9leGFtcGxlLm9yZy92aWRlbw/?startat=42'
+          for ((i=0; i<30; i++)); do
+            [ -f "$HOME/mpv-handler-arguments" ] && break
+            sleep 1
+          done
+          printf '%s\n' '--start=42' '--' 'https://example.org/video' > "$RUNNER_TEMP/expected"
+          diff -u "$RUNNER_TEMP/expected" "$HOME/mpv-handler-arguments"
