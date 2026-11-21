@@ -9,9 +9,9 @@ brew install xlilu/mpv-handler/mpv-handler
 create-mpv-handler-app
 ```
 
-第二条命令创建 `~/Applications/mpv-handler.app`，并向 macOS 注册 `mpv-handler://` 和 `mpv-handler-debug://`。浏览器首次询问是否打开外部应用时，选择打开。调试链接的输出保存在 `~/Library/Logs/mpv-handler/debug.log`。
+第二条命令创建 `~/Applications/mpv-handler.app`，并向 macOS 注册两种协议。`mpv-handler://` 直接启动播放，`mpv-handler-debug://` 会打开“终端”窗口，显示输出和错误信息。浏览器首次询问是否打开外部应用时，选择打开。
 
-如果目标目录已有同名应用，脚本会提示并退出。要替换旧版，请先将旧应用移到备份位置，再运行生成命令。要先检查新外壳，可指定另一个目录并跳过注册：
+如果目标目录已有同名应用，脚本会提示并退出。要先检查新外壳，可指定另一个目录并跳过注册：
 
 ```sh
 create-mpv-handler-app --no-register "$PWD/preview"
@@ -28,7 +28,7 @@ brew update
 brew upgrade xlilu/mpv-handler/mpv-handler
 ```
 
-外壳通过 Homebrew 的 `opt/mpv-handler` 路径调用当前版本。常规核心升级后，已有外壳会自动使用新版本。
+外壳通过 Homebrew 的 `opt/mpv-handler` 路径调用当前核心。**如果外壳由 Formula `0.4.2_1` 或更早版本生成**，升级后请将旧应用移到废纸篓，再运行 `create-mpv-handler-app` 生成支持调试窗口的新外壳。如果曾指定安装目录，请把同一目录作为参数传给生成命令。
 
 ## 卸载
 

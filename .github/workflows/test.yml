@@ -19,39 +19,72 @@ jobs:
           brew install xlilu/mpv-handler/mpv-handler
           brew test xlilu/mpv-handler/mpv-handler
 
-      - name: Open a protocol URL through the app
+      - name: Test background and Terminal playback through the app
+        shell: bash
         run: |
           apps="$RUNNER_TEMP/Applications"
           create-mpv-handler-app "$apps"
 
           test_config() {
-            local config="$1/mpv-handler"
-            shift
+            local scheme="$1" config="$2/mpv-handler"
+            shift 2
             local player="$config/mock-mpv"
             mkdir -p "$config/cookies"
             touch "$config/cookies/example.txt"
             printf 'mpv = "%s"\n' "$player" > "$config/config.toml"
-            cat > "$player" <<'SH'
-          #!/bin/sh
-          set -eu
-          out="${0%/*}/received"
-          printf '%s\n' "$@" > "$out.tmp"
-          mv "$out.tmp" "$out"
-          SH
+            cat > "$player" <<'PY'
+          #!/usr/bin/python3
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+
+          folder = Path(__file__).parent
+          streams = [os.ttyname(fd) if os.isatty(fd) else None for fd in (1, 2)]
+          pid = os.getppid()
+          terminal = False
+          while pid > 1:
+              parent, executable = subprocess.check_output(
+                  ["/bin/ps", "-p", str(pid), "-o", "ppid=,comm="], text=True
+              ).strip().split(None, 1)
+              if Path(executable).name == "Terminal":
+                  (folder / "terminal.pid").write_text(str(pid) + "\n")
+                  terminal = True
+                  break
+              pid = int(parent)
+
+          if terminal and streams[0] and streams[0] == streams[1]:
+              mode = "mpv-handler-debug"
+          elif not terminal and streams == [None, None]:
+              mode = "mpv-handler"
+          else:
+              mode = f"unexpected terminal={terminal}, streams={streams}"
+
+          tmp = folder / "received.tmp"
+          tmp.write_text("\n".join([mode, *sys.argv[1:]]) + "\n")
+          tmp.replace(folder / "received")
+          PY
             chmod +x "$player"
             : > "$config/received"
 
             /usr/bin/open -n "$@" -a "$apps/mpv-handler.app" \
-              'mpv-handler://play/aHR0cHM6Ly9leGFtcGxlLm9yZy92aWRlbw/?startat=42&cookies=example.txt'
+              "${scheme}://play/aHR0cHM6Ly9leGFtcGxlLm9yZy92aWRlbw/?startat=42&cookies=example.txt"
             for ((i=0; i<30; i++)); do
               [ -s "$config/received" ] && break
               sleep 1
             done
-            printf '%s\n' "--ytdl-raw-options-append=cookies=$config/cookies/example.txt" \
+            printf '%s\n' "$scheme" "--ytdl-raw-options-append=cookies=$config/cookies/example.txt" \
               '--start=42' '--' 'https://example.org/video' > "$config/expected"
             diff -u "$config/expected" "$config/received"
           }
 
-          test_config "$HOME/.config"
+          test_config mpv-handler "$HOME/.config"
           custom="$RUNNER_TEMP/custom config"
-          test_config "$custom" --env "XDG_CONFIG_HOME=$custom"
+          terminal_pid_file="$custom/mpv-handler/terminal.pid"
+          close_test_terminal() {
+            if [[ -s "$terminal_pid_file" ]]; then
+              kill -TERM "$(cat "$terminal_pid_file")" 2>/dev/null || true
+            fi
+          }
+          trap close_test_terminal EXIT
+          test_config mpv-handler-debug "$custom" --env "XDG_CONFIG_HOME=$custom"
