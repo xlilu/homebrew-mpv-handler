@@ -26,6 +26,16 @@ brew update
 brew upgrade xlilu/mpv-handler/mpv-handler
 ```
 
-外壳通过 Homebrew 的 `opt/mpv-handler` 路径调用当前版本。常规核心升级后，已有外壳会自动使用新版本。卸载时，运行 `brew uninstall xlilu/mpv-handler/mpv-handler`，再把生成的应用移到废纸篓。
+外壳通过 Homebrew 的 `opt/mpv-handler` 路径调用当前版本。常规核心升级后，已有外壳会自动使用新版本。
+
+## 卸载
+
+在 Finder 中把 `~/Applications/mpv-handler.app` 移到废纸篓。如果生成时指定了其他目录，请移除该目录里的应用。然后在终端卸载核心程序。
+
+```sh
+brew uninstall xlilu/mpv-handler/mpv-handler
+```
+
+如果也想移除这个 Tap，运行 `brew untap xlilu/mpv-handler`。
 
 本项目使用了先安装核心、再在本机生成应用外壳的思路。[9beach/mpv-app-bundle](https://github.com/9beach/mpv-app-bundle)
