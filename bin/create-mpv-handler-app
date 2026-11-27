@@ -1,0 +1,36 @@
+#!/bin/sh
+set -eu
+
+usage() { echo "Usage: ${0##*/} [--no-register] [applications-directory]"; }
+register=yes
+case ${1-} in
+    --help|-h) usage; exit 0 ;;
+    --no-register) register=no; shift ;;
+esac
+if [ "$#" -gt 1 ]; then usage >&2; exit 2; fi
+
+dest=${1:-"$HOME/Applications"}
+mkdir -p "$dest"
+dest=$(CDPATH= cd -- "$dest" && pwd -P)
+name=mpv-handler.app
+if [ -e "$dest/$name" ] || [ -L "$dest/$name" ]; then
+    echo "Already exists: $dest/$name. Move it aside to generate a new app." >&2
+    exit 1
+fi
+
+libexec="$(brew --prefix)/opt/mpv-handler/libexec"
+stage=$(mktemp -d "$dest/.mpv-handler.XXXXXXXX")
+trap 'rm -rf "$stage"' EXIT
+trap 'exit 1' HUP INT TERM
+/bin/sh "$libexec/macos/bundle.sh" "$libexec/mpv-handler" "$stage/$name"
+/usr/bin/codesign --verify --deep --strict "$stage/$name"
+/bin/mv -n "$stage/$name" "$dest/"
+if [ -e "$stage/$name" ]; then
+    echo "Could not install $dest/$name. Another copy already exists." >&2
+    exit 1
+fi
+
+if [ "$register" = yes ]; then
+    /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$dest/$name"
+fi
+echo "Created $dest/$name"

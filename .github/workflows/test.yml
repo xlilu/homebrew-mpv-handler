@@ -8,6 +8,8 @@ permissions:
 jobs:
   install:
     runs-on: macos-latest
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
     steps:
       - uses: actions/checkout@v7
         with:
@@ -16,59 +18,54 @@ jobs:
       - name: Install and test the Formula
         run: |
           brew tap xlilu/mpv-handler "$GITHUB_WORKSPACE"
+          tap=$(brew --repository xlilu/mpv-handler)
+          git -C "$tap" fetch "$GITHUB_WORKSPACE" "$GITHUB_SHA"
+          git -C "$tap" checkout --detach FETCH_HEAD
           brew install xlilu/mpv-handler/mpv-handler
           brew test xlilu/mpv-handler/mpv-handler
 
-      - name: Test background and Terminal playback through the app
+      - name: Verify the generated app and its Terminal integration
+        run: |
+          app="$RUNNER_TEMP/Applications/mpv-handler.app"
+          create-mpv-handler-app --no-register "${app%/*}"
+          codesign --verify --deep --strict "$app"
+          test -n "$(plutil -extract NSAppleEventsUsageDescription raw -o - "$app/Contents/Info.plist")"
+          osadecompile "$app/Contents/Resources/Scripts/main.scpt" | grep -F 'do script '
+
+      - name: Test the regular URL through the app and the debug launcher on a PTY
         shell: bash
         run: |
-          apps="$RUNNER_TEMP/Applications"
-          create-mpv-handler-app "$apps"
+          app="$RUNNER_TEMP/Applications/mpv-handler.app"
 
           test_config() {
-            local scheme="$1" config="$2/mpv-handler"
-            shift 2
+            local scheme="$1" base="$2" config="$2/mpv-handler"
             local player="$config/mock-mpv"
             mkdir -p "$config/cookies"
             touch "$config/cookies/example.txt"
             printf 'mpv = "%s"\n' "$player" > "$config/config.toml"
-            cat > "$player" <<'PY'
-          #!/usr/bin/python3
-          import os
-          from pathlib import Path
-          import subprocess
-          import sys
-
-          folder = Path(__file__).parent
-          streams = [os.ttyname(fd) if os.isatty(fd) else None for fd in (1, 2)]
-          pid = os.getppid()
-          terminal = False
-          while pid > 1:
-              parent, executable = subprocess.check_output(
-                  ["/bin/ps", "-p", str(pid), "-o", "ppid=,comm="], text=True
-              ).strip().split(None, 1)
-              if Path(executable).name == "Terminal":
-                  (folder / "terminal.pid").write_text(str(pid) + "\n")
-                  terminal = True
-                  break
-              pid = int(parent)
-
-          if terminal and streams[0] and streams[0] == streams[1]:
-              mode = "mpv-handler-debug"
-          elif not terminal and streams == [None, None]:
-              mode = "mpv-handler"
-          else:
-              mode = f"unexpected terminal={terminal}, streams={streams}"
-
-          tmp = folder / "received.tmp"
-          tmp.write_text("\n".join([mode, *sys.argv[1:]]) + "\n")
-          tmp.replace(folder / "received")
-          PY
+            cat > "$player" <<'SH'
+          #!/bin/sh
+          set -eu
+          if [ -t 1 ] && [ -t 2 ]; then
+              mode=mpv-handler-debug
+          elif [ ! -t 1 ] && [ ! -t 2 ]; then
+              mode=mpv-handler
+          else
+              exit 1
+          fi
+          folder=${0%/*}
+          printf '%s\n' "$mode" "$@" > "$folder/received.tmp"
+          mv "$folder/received.tmp" "$folder/received"
+          SH
             chmod +x "$player"
-            : > "$config/received"
 
-            /usr/bin/open -n "$@" -a "$apps/mpv-handler.app" \
-              "${scheme}://play/aHR0cHM6Ly9leGFtcGxlLm9yZy92aWRlbw/?startat=42&cookies=example.txt"
+            local url="${scheme}://play/aHR0cHM6Ly9leGFtcGxlLm9yZy92aWRlbw/?startat=42&cookies=example.txt"
+            if [[ "$scheme" == mpv-handler ]]; then
+              /usr/bin/open -n -a "$app" "$url"
+            else
+              # An actual Terminal do script event requires the user's Automation consent.
+              XDG_CONFIG_HOME="$base" /usr/bin/script -q /dev/null "$app/Contents/Resources/open-url" "$url" </dev/null
+            fi
             for ((i=0; i<30; i++)); do
               [ -s "$config/received" ] && break
               sleep 1
@@ -79,12 +76,4 @@ jobs:
           }
 
           test_config mpv-handler "$HOME/.config"
-          custom="$RUNNER_TEMP/custom config"
-          terminal_pid_file="$custom/mpv-handler/terminal.pid"
-          close_test_terminal() {
-            if [[ -s "$terminal_pid_file" ]]; then
-              kill -TERM "$(cat "$terminal_pid_file")" 2>/dev/null || true
-            fi
-          }
-          trap close_test_terminal EXIT
-          test_config mpv-handler-debug "$custom" --env "XDG_CONFIG_HOME=$custom"
+          test_config mpv-handler-debug "$RUNNER_TEMP/custom config"
